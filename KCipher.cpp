@@ -3,8 +3,9 @@
 //
 
 #include "KCipher.h"
-//#include "crypto++/gf2n.h"
-//#include "crypto++/algebra.h"
+#include <crypto++/gf2n.h>
+#include <crypto++/algebra.h>
+#include <crypto++/cryptlib.h>
 
 
 using namespace std;
@@ -30,7 +31,7 @@ bitset<N> KCipher::BitReordering(bitset<128> input, int index) {
 }
 
 bitset<128> KCipher::SBox(bitset<128> input, bitset<128> rand, int index) {
-
+    return input;
 }
 
 bitset<128> KCipher::EncCPA(bitset<128>input , bitset<128> K[4], bitset<128> rand) {

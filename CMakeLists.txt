@@ -1,7 +1,17 @@
 cmake_minimum_required(VERSION 3.15)
 project(K_Cipher)
 
+
 set(CMAKE_CXX_STANDARD 14)
 
+
+
+
+
+
 add_executable(K_Cipher main.cpp KCipher.cpp KCipher.h)
-#target_link_libraries(Chat /usr/lib/libcrypto++.a)
+add_library(libgivaro SHARED IMPORTED)
+set_target_properties(libgivaro PROPERTIES IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libgivaro.so")
+include_directories("/usr/include/givaro")
+target_link_libraries(K_Cipher "/usr/lib/x86_64-linux-gnu/libgivaro.so")
+target_link_libraries(K_Cipher gmp)
