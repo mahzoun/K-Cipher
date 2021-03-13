@@ -2,6 +2,29 @@
 #include <iostream>
 #include <cmath>
 
+
+template<size_t size>
+bitset<size> operator+(bitset<size> &A, bitset<size> &B) noexcept {
+    bitset<size> SUM;
+    bool carry = 0;
+    for (int i = 0; i < size; i++) {
+        SUM[i] = A[i] ^ B[i] ^ carry;
+        carry = (A[i] & B[i]) | (A[i] & carry) | (B[i] & carry);
+    }
+    return SUM;
+}
+
+template<size_t size>
+bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
+    bitset<size> diff, B_c, one = 1, temp;
+    for (int i = 0; i < size; i++)
+        B_c[i] = 1;
+    temp = B ^ B_c;
+    diff = A + temp;
+    diff = diff + one;
+    return diff;
+}
+
 using namespace std;
 
 int main(int argc, char **argv) {
@@ -13,7 +36,7 @@ int main(int argc, char **argv) {
                             0x8028a087933b6f4a, 0x74fd2d5530ebb1f5};
     uint64_t cipher_val[2] = {0xa3f53f715d01e6eb, 0xa8c1904ee7567837};
     bitset<64> t[2];
-    bitset<N> input, key, rand[6], output;
+    bitset<N> input, key, rand[6], output, dec;
     t[0] = plaintext_val[0];
     t[1] = plaintext_val[1];
     for (int i = 0; i < 128; i++)
@@ -28,13 +51,11 @@ int main(int argc, char **argv) {
         for (int j = 0; j < 128; j++)
             rand[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
     }
-//    cout << input << endl << key << endl;
-//    for (int i = 0; i < 6; i++)
-//        cout << rand[i] << endl;
 
+//    bitset<N> sbox_output = kcipher.SBox(input, rand, 0);
     output = kcipher.EncCPA(input, key, rand);
-
-    cout << output << endl;
+    dec = kcipher.DecCPA(output, key, rand);
+    cout << input << endl << output << endl << dec << endl;
     return 0;
 }
 

@@ -21,6 +21,17 @@ bitset<size> operator+(bitset<size> &A, bitset<size> &B) noexcept {
     return SUM;
 }
 
+template<size_t size>
+bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
+    bitset<size> diff, B_c, one = 1;
+    for (int i = 0; i < size; i++)
+        B_c[i] = 1;
+    B = B ^ B_c;
+    diff = A + B;
+    diff = diff + one;
+    return diff;
+}
+
 bitset<N> KCipher::BitReordering(bitset<128> input, int index) {
     bitset<N> output;
     for (int i = 0; i < N; i++) {
@@ -45,25 +56,77 @@ bitset<N> KCipher::SBox(bitset<N> input, bitset<N> rand[], int index) {
         r1_val = cur_r1.to_ulong();
         long t = sbox[block_val ^ r0_val] + r1_val;
         t = t % (1 << M);
-        //t = t << 2 | t >> M - 2; //this is weird
+//        t = (t << 2) % (1 << M) | (t >> M - 2) % (1 << M); //this is weird
         cur_block = t;
         for (int i = block; i < block + M; i++) {
             output[i] = cur_block[i - block];
         }
     }
+    return output;
+}
+
+bitset<N> KCipher::Inv_SBox(bitset<N> input, bitset<N> rand[], int index) {
+    bitset<N> output;
+    for (int block = 0; block < N; block += M) {
+        bitset<M> cur_block, cur_r0, cur_r1;
+        long block_val, r0_val, r1_val;
+        for (int i = block; i < block + M; i++) {
+            cur_block[i - block] = input[i];
+            cur_r0[i - block] = rand[2 * index][i];
+            cur_r1[i - block] = rand[2 * index + 1][i];
+        }
+        block_val = cur_block.to_ulong();
+        r0_val = cur_r0.to_ulong();
+        r1_val = cur_r1.to_ulong();
+//        long t = (block_val >> 2) % (1 << M) | (block_val << M - 2) % (1 << M);
+        long t = block_val % (1 << M);
+        t -= r1_val;
+        t %= (1 << M);
+        t = sbox_inv[t] ^ r0_val;
+        cur_block = t;
+        for (int i = block; i < block + M; i++) {
+            output[i] = cur_block[i - block];
+        }
+    }
+    return output;
 }
 
 bitset<128> KCipher::EncCPA(bitset<128> input, bitset<128> key, bitset<128> rand[]) {
-    cerr << input << endl;
+//    cerr << input << endl;
     bitset<N> K[3];
     KeyExpansion(key, K);
     for (int i = 0; i < 3; i++) {
         input = input + K[i];
+//        cerr << input << endl;
         input = BitReordering(input, i);
+//        cerr << i << "\t" << input << endl;
         input = SBox(input, rand, i);
+//        cerr << i << "\t" << input << endl;
     }
     bitset<N> veil = BitReordering(K[2], 3);
+//    cerr << (input ^ veil) << endl;
     return input ^ veil;
+}
+
+bitset<128> KCipher::DecCPA(bitset<128> input, bitset<128> key, bitset<128> rand[]) {
+//    cerr << "\n___________________\n";
+//    cerr << input << endl;
+    bitset<N> K[3];
+    KeyExpansion(key, K);
+    bitset<N> veil = BitReordering(K[2], 3);
+    input = input ^ veil;
+//    cerr << input << endl;
+    for (int i = 0; i < 3; i++) {
+//        cerr << i << "\t" << input << endl;
+        input = Inv_SBox(input, rand, 2 - i);
+//        cerr << i << "\t" << input << endl;
+        input = BitReordering(input, 12 - i);
+//        cerr << input << endl;
+        input = input - K[2 - i];
+//        cerr << input << endl;
+    }
+//    cerr << "\n___________________\n";
+    return input;
 }
 
 void KCipher::KeyExpansion(bitset<N> key, bitset<N> K[]) {
