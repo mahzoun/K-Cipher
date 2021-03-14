@@ -2,12 +2,14 @@
 // Created by sauron on 3/9/21.
 //
 
+#include <bit>
+#include <bitset>
+#include <cstdint>
+#include <iostream>
 #include "KCipher.h"
-#include <crypto++/gf2n.h>
-#include <crypto++/algebra.h>
-#include <crypto++/cryptlib.h>
 
-
+#define ROTL8(x,shift) ((uint8_t) ((x) << (shift)) | ((x) >> (8 - (shift))))
+#define ROTR8(x,shift) ((uint8_t) ((x) >> (shift)) | ((x) << (8 - (shift))))
 using namespace std;
 
 template<size_t size>
@@ -56,7 +58,7 @@ bitset<N> KCipher::SBox(bitset<N> input, bitset<N> rand[], int index) {
         r1_val = cur_r1.to_ulong();
         long t = sbox[block_val ^ r0_val] + r1_val;
         t = t % (1 << M);
-//        t = (t << 2) % (1 << M) | (t >> M - 2) % (1 << M); //this is weird
+        t = ROTL8(t, 2);
         cur_block = t;
         for (int i = block; i < block + M; i++) {
             output[i] = cur_block[i - block];
@@ -78,8 +80,10 @@ bitset<N> KCipher::Inv_SBox(bitset<N> input, bitset<N> rand[], int index) {
         block_val = cur_block.to_ulong();
         r0_val = cur_r0.to_ulong();
         r1_val = cur_r1.to_ulong();
-//        long t = (block_val >> 2) % (1 << M) | (block_val << M - 2) % (1 << M);
-        long t = block_val % (1 << M);
+        long t = block_val;
+//        cerr << bitset<8>(t) << endl;
+        t = ROTR8(t, 2);
+//        cerr << bitset<8>(t) << endl;
         t -= r1_val;
         t %= (1 << M);
         t = sbox_inv[t] ^ r0_val;
