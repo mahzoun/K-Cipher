@@ -97,6 +97,13 @@ bitset<128> KCipher::EncCPA(bitset<128> input, bitset<128> key, bitset<128> rand
 //    cerr << input << endl;
     bitset<N> K[3];
     KeyExpansion(key, K);
+//    bitset<N> temp = BitReordering(K[2], 3);
+//    for(int i = N-1 ; i >= 0; i--){
+//        cout << temp[i];
+//        if(i % 8 == 0)
+//            cout <<"\t";
+//    }
+//    cout << endl;
     for (int i = 0; i < 3; i++) {
         input = input + K[i];
 //        cerr << input << endl;
