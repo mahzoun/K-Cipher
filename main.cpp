@@ -36,9 +36,14 @@ bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
     return diff;
 }
 
+static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+// initialize Mersennes' twister using rd to generate the seed
+static std::mt19937 rng{ rd() };
+
 void Random(bitset<N> &input) {
+    static std::uniform_int_distribution<int> uid(0, 1); // random dice
     for (int i = 0; i < N; i++)
-        input[i] = rand() % 2;
+        input[i] = uid(rng);
 }
 
 void DDT(uint8_t r1, bool gddt[256][256]) {
@@ -403,6 +408,11 @@ void Diff_crypt() {
     }
     bitset<N> K[3];
     kcipher.KeyExpansion(key, K);
+    for (int i = 0; i < 3; i++)
+        cout << K[i] << endl;
+    cout << endl;
+    for (int i = 0; i < 6; i++)
+        cout << rand[i] << endl;
 //    for(int i = 0; i < 3; i++)
 //        Random(K[i]);
 //    for(int i = 0; i < 6; i++)
@@ -525,35 +535,5 @@ int main(int argc, char **argv) {
     }
     return 0;
 }
-
-int main2() {
-    uint32_t counter1[256], counter2[256];
-    for(int i = 0; i < 256; i++){
-        counter1[i] = counter2[i] = 0;
-    }
-    for(uint16_t i = 0; i < 256; i++){
-        for(uint16_t j = 0; j < 256; j++) {
-            uint8_t t[2], tt[2];
-            t[0] = i ^ 57;
-            t[1] = j ^ 57;
-            ROTR8(t[0], 2);
-            ROTR8(t[1], 2);
-            t[0] -= 49;
-            t[1] -= 49;
-            counter1[t[0] ^ t[1]]++;
-            tt[0] = i ^ 59;
-            tt[1] = j ^ 59;
-            ROTR8(tt[0], 2);
-            ROTR8(tt[1], 2);
-            tt[0] -= 177;
-            tt[1] -= 177;
-            counter2[t[0] ^ t[1] ^ tt[0] ^ tt[1]]++;
-        }
-    }
-    for(int i = 0 ; i < 256; i++){
-        cout << i << "\t" << counter1[i] << "\t" << counter2[i] << endl;
-    }
-}
-
 
 
