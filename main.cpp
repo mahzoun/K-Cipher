@@ -13,6 +13,10 @@ ofstream ffout("table.out");
 
 KCipher kcipher;
 int Count[256];
+uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
+                        0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
+                        0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
+                        0x8028a087933b6f4a, 0x74fd2d5530ebb1f5};
 
 template<size_t size>
 bitset<size> operator+(bitset<size> &A, bitset<size> &B) noexcept {
@@ -42,7 +46,6 @@ void Random(bitset<N> &input) {
 }
 
 void DDT(uint8_t r1, bool gddt[256][256]) {
-    KCipher kcipher;
     uint8_t temp_sbox[256];
     uint8_t ddt[256][256];
     for (int i = 0; i < 256; i++)
@@ -82,6 +85,9 @@ uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position) {
 
 uint64_t key_table[256][256];
 
+
+bool printed = false;
+bitset<N> R[6], KEY;
 void differential_cryptanalysis() {
     bitset<N> p[2], r[6];
     Random(p[0]);
@@ -98,42 +104,24 @@ void differential_cryptanalysis() {
 //        DDT(R, gddt);
 //    }
 
-//    for(int i = 0 ; i < 256; i++)
-//        for(int j = 0 ; j < 256; j++)
-//            if(gddt[i][j])
-//                cout << i << "\t" << j << endl;
 
-//    for(int i = 0; i < 256; i++){
-//        for(int j = 0; j < 256; j++){
-//            if(gddt[i][j])
-//                fout << i << "\t" << j << endl;
-//        }
-//    }
-
-
-    uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
-                            0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
-                            0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
-                            0x8028a087933b6f4a, 0x74fd2d5530ebb1f5};
     bitset<64> t[2];
     bitset<N> key;
     t[0] = key_val[0];
     t[1] = key_val[1];
-    for (int i = 0; i < 128; i++)
-        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
-    for (int i = 0; i < 6; i++) {
-        t[0] = key_val[2 * i + 2];
-        t[1] = key_val[2 * i + 3];
-        for (int j = 0; j < 128; j++)
-            r[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
-    }
-//    for(int i = 127; i >= 0; i--) {
-//        cout << r[5][i];
-//        if (i % 8 == 0)
-//            cout << "\t";
+//    for (int i = 0; i < 128; i++)
+//        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
+//    for (int i = 0; i < 6; i++) {
+//        t[0] = key_val[2 * i + 2];
+//        t[1] = key_val[2 * i + 3];
+//        for (int j = 0; j < 128; j++)
+//            r[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
 //    }
-//    cout << "\n";
 
+    key = KEY;
+
+    for(int i = 0; i < 6; i++)
+        r[i] = R[i];
     bitset<N> ciphertext[2];
     for (int i = 0; i < 2; i++)
         ciphertext[i] = kcipher.EncCPA(p[i], key, r);
@@ -160,11 +148,6 @@ void diff_cryptanalysis_ChProbability() {
     counterDiffProb = 0;
 
     cout << "total = " << total << endl;
-
-    uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
-                            0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
-                            0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
-                            0x8028a087933b6f4a, 0x74fd2d5530ebb1f5};
 
     //I try to generate the key at random to get a better intuition on the probability.
     //for (int i = 0;i < 7;i++)
@@ -385,10 +368,6 @@ void diff_cryptanalysis_ChProbability() {
 }
 
 void Diff_crypt() {
-    uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
-                            0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
-                            0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
-                            0x8028a087933b6f4a, 0x74fd2d5530ebb1f5};
     bitset<64> t[2];
     bitset<N> key, rand[6];
     t[0] = key_val[0];
@@ -419,7 +398,7 @@ void Diff_crypt() {
         exp2[i] = 0;
     }
 
-    expected_diff.set(106);
+    expected_diff.set(50);
 //    exp1.set(71);
 //    exp2.set(122);
     //Print_in_blocks(exp1);
@@ -427,7 +406,7 @@ void Diff_crypt() {
     for (int i = 0; i < p; i++) {
         Random(p1);
         p2 = p1;
-        p2[72] = p2[72] ^ 1;
+        p2[62] = p2[62] ^ 1;
         //p2[103] = p2[103] ^ 1;
         //p2[98] = p2[98] ^ 1;
         //p2[97] = p2[97] ^ 1;
@@ -497,32 +476,53 @@ void Diff_crypt() {
 using namespace std;
 
 int main(int argc, char **argv) {
-    srand(time(0));
-    for (int i = 0; i < (1 << 16); i++) {
-        if (i % 32 == 0)
-            cerr << i << endl;
-        differential_cryptanalysis();
-    }
+//    srand(time(NULL));
+//    Random(KEY);
+//    for(int i = 0; i < 6; i++)
+//        Random(R[i]);
+
+//    bitset<N> K[3], temp;
+//    kcipher.KeyExpansion(KEY, K);
+//    temp = kcipher.BitReordering(K[2], 3);
+//    for(int i = 127; i >= 0; i--) {
+//        cout << temp[i];
+//        if (i % 8 == 0)
+//            cout << "\t";
+//    }
+//    cout << "\n";
+//    for(int i = 127; i >= 0; i--) {
+//        cout << R[5][i];
+//        if (i % 8 == 0)
+//            cout << "\t";
+//    }
+//    printed = true;
+//    cout << endl;
+//
+//    for (int i = 0; i < (1 << 16); i++) {
+//        if (i % 4096 * 4 == 0)
+//            cerr << i << endl;
+//        differential_cryptanalysis();
+//    }
 //    diff_cryptanalysis_ChProbability();
-//    Diff_crypt();
-    int maxk = 0, maxr1 = 0;
-    for (int i = 0; i < 256; i++) {
-        for (int j = 0; j < 256; j++) {
-            if (key_table[i][j] > key_table[maxk][maxr1]) {
-                maxk = i;
-                maxr1 = j;
-            }
-        }
-    }
-    cout << maxk << "\t" << maxr1 << endl;
-    for (int i = 0; i < 256; i++) {
-        for (int j = 0; j < 256; j++) {
-            if (key_table[i][j] == key_table[maxk][maxr1])
-                cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
-            ffout << (int) key_table[i][j] << "\t";
-        }
-        ffout << endl;
-    }
+    Diff_crypt();
+//    int maxk = 0, maxr1 = 0;
+//    for (int i = 0; i < 256; i++) {
+//        for (int j = 0; j < 256; j++) {
+//            if (key_table[i][j] > key_table[maxk][maxr1]) {
+//                maxk = i;
+//                maxr1 = j;
+//            }
+//        }
+//    }
+//    cout << maxk << "\t" << maxr1 << endl;
+//    for (int i = 0; i < 256; i++) {
+//        for (int j = 0; j < 256; j++) {
+//            if (key_table[i][j] == key_table[maxk][maxr1])
+//                cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
+//            ffout << (int) key_table[i][j] << "\t";
+//        }
+//        ffout << endl;
+//    }
     return 0;
 }
 

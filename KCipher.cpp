@@ -56,8 +56,15 @@ bitset<N> KCipher::SBox(bitset<N> input, bitset<N> rand[], int index) {
         block_val = cur_block.to_ulong();
         r0_val = cur_r0.to_ulong();
         r1_val = cur_r1.to_ulong();
-        uint8_t t = sbox[block_val ^ r0_val] + r1_val;
-        t = ROTL8(t, 2);
+        uint8_t t = 0;
+        if(index != -1) {
+            t = sbox[block_val ^ r0_val] + r1_val;
+            t = ROTL8(t, 2);
+        }
+        else {
+            t = sbox[block_val];
+            t = ROTL8(t, 2);
+        }
         cur_block = t;
         for (int i = block; i < block + M; i++) {
             output[i] = cur_block[i - block];
@@ -80,11 +87,11 @@ bitset<N> KCipher::Inv_SBox(bitset<N> input, bitset<N> rand[], int index) {
         r0_val = cur_r0.to_ulong();
         r1_val = cur_r1.to_ulong();
         uint8_t t = block_val;
-//        cerr << bitset<8>(t) << endl;
         t = ROTR8(t, 2);
-//        cerr << bitset<8>(t) << endl;
-        t -= r1_val;
-        t = sbox_inv[t] ^ r0_val;
+        if(index != -1) {
+            t -= r1_val;
+            t = sbox_inv[t] ^ r0_val;
+        }
         cur_block = t;
         for (int i = block; i < block + M; i++) {
             output[i] = cur_block[i - block];
