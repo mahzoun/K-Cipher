@@ -476,34 +476,6 @@ void Diff_crypt() {
 using namespace std;
 
 int main(int argc, char **argv) {
-//    srand(time(NULL));
-//    Random(KEY);
-//    for(int i = 0; i < 6; i++)
-//        Random(R[i]);
-
-//    bitset<N> K[3], temp;
-//    kcipher.KeyExpansion(KEY, K);
-//    temp = kcipher.BitReordering(K[2], 3);
-//    for(int i = 127; i >= 0; i--) {
-//        cout << temp[i];
-//        if (i % 8 == 0)
-//            cout << "\t";
-//    }
-//    cout << "\n";
-//    for(int i = 127; i >= 0; i--) {
-//        cout << R[5][i];
-//        if (i % 8 == 0)
-//            cout << "\t";
-//    }
-//    printed = true;
-//    cout << endl;
-//
-//    for (int i = 0; i < (1 << 16); i++) {
-//        if (i % 4096 * 4 == 0)
-//            cerr << i << endl;
-//        differential_cryptanalysis();
-//    }
-//    diff_cryptanalysis_ChProbability();
     Diff_crypt();
 //    int maxk = 0, maxr1 = 0;
 //    for (int i = 0; i < 256; i++) {
@@ -525,35 +497,4 @@ int main(int argc, char **argv) {
 //    }
     return 0;
 }
-
-int main2() {
-    uint32_t counter1[256], counter2[256];
-    for(int i = 0; i < 256; i++){
-        counter1[i] = counter2[i] = 0;
-    }
-    for(uint16_t i = 0; i < 256; i++){
-        for(uint16_t j = 0; j < 256; j++) {
-            uint8_t t[2], tt[2];
-            t[0] = i ^ 57;
-            t[1] = j ^ 57;
-            ROTR8(t[0], 2);
-            ROTR8(t[1], 2);
-            t[0] -= 49;
-            t[1] -= 49;
-            counter1[t[0] ^ t[1]]++;
-            tt[0] = i ^ 59;
-            tt[1] = j ^ 59;
-            ROTR8(tt[0], 2);
-            ROTR8(tt[1], 2);
-            tt[0] -= 177;
-            tt[1] -= 177;
-            counter2[t[0] ^ t[1] ^ tt[0] ^ tt[1]]++;
-        }
-    }
-    for(int i = 0 ; i < 256; i++){
-        cout << i << "\t" << counter1[i] << "\t" << counter2[i] << endl;
-    }
-}
-
-
 
