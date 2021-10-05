@@ -40,9 +40,14 @@ bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
     return diff;
 }
 
+static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+// initialize Mersennes' twister using rd to generate the seed
+static std::mt19937 rng{ rd() };
+
 void Random(bitset<N> &input) {
+    static std::uniform_int_distribution<int> uid(0, 1); // random dice
     for (int i = 0; i < N; i++)
-        input[i] = rand() % 2;
+        input[i] = uid(rng);
 }
 
 void DDT(uint8_t r1, bool gddt[256][256]) {
@@ -382,6 +387,11 @@ void Diff_crypt() {
     }
     bitset<N> K[3];
     kcipher.KeyExpansion(key, K);
+    for (int i = 0; i < 3; i++)
+        cout << K[i] << endl;
+    cout << endl;
+    for (int i = 0; i < 6; i++)
+        cout << rand[i] << endl;
 //    for(int i = 0; i < 3; i++)
 //        Random(K[i]);
 //    for(int i = 0; i < 6; i++)
@@ -497,4 +507,3 @@ int main(int argc, char **argv) {
 //    }
     return 0;
 }
-
