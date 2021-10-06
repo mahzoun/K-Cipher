@@ -43,6 +43,15 @@ bitset<N> KCipher::BitReordering(bitset<128> input, int index) {
     return output;
 }
 
+bitset<N> KCipher::BitReorderingRev(bitset<128> input, int index) {
+    bitset<N> output;
+    for (int i = 0; i < N; i++) {
+        int new_index = rev_reordering[index][i];
+        output[new_index] = input[i];
+    }
+    return output;
+}
+
 bitset<N> KCipher::SBox(bitset<N> input, bitset<N> rand[], int index) {
     bitset<N> output;
     for (int block = 0; block < N; block += M) {
@@ -91,6 +100,9 @@ bitset<N> KCipher::Inv_SBox(bitset<N> input, bitset<N> rand[], int index) {
         if(index != -1) {
             t -= r1_val;
             t = sbox_inv[t] ^ r0_val;
+        }
+        else{
+            t = sbox_inv[t];
         }
         cur_block = t;
         for (int i = block; i < block + M; i++) {
@@ -165,4 +177,28 @@ void KCipher::KeyExpansion(bitset<N> key, bitset<N> K[]) {
     U = BitReordering(U, 6);
     U = SBox(U, rand, -1);
     K[2] = BitReordering(U, 7);
+}
+
+void KCipher::KeyRecover(bitset<N> key, bitset<N> K[]) {
+    bitset<N> C, U, rand[4];
+    bitset<64> t[2];
+    K[2] = BitReorderingRev(key, 3);
+
+    t[0] = __kcipher_range_65_128_const_2[0];
+    t[1] = __kcipher_range_65_128_const_2[1];
+    for (int j = 0; j < 128; j++)
+        C[j] = j < 64 ? t[0][j] : t[1][j - 64];
+    K[1] = BitReorderingRev(K[2], 7);
+    K[1] = Inv_SBox(K[1], rand, -1);
+    K[1] = BitReorderingRev(K[1], 6);
+    K[1] = K[1] - C;
+
+    t[0] = __kcipher_range_65_128_const_1[0];
+    t[1] = __kcipher_range_65_128_const_1[1];
+    for (int j = 0; j < 128; j++)
+        C[j] = j < 64 ? t[0][j] : t[1][j - 64];
+    K[0] = BitReorderingRev(K[1], 5);
+    K[0] = Inv_SBox(K[0], rand, -1);
+    K[0] = BitReorderingRev(K[0], 4);
+    K[0] = K[0] - C;
 }

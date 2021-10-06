@@ -12,7 +12,6 @@ ofstream fout("ddt.out");
 ofstream ffout("table.out");
 
 KCipher kcipher;
-int Count[256];
 uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
                         0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
                         0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
@@ -481,7 +480,6 @@ void Diff_crypt() {
 //    cout << "prob of scond holding when first did: " << log2((double)br / br1) << endl;
 
 }
-
 
 using namespace std;
 
