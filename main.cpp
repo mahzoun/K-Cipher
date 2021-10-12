@@ -90,24 +90,23 @@ uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position) {
 uint64_t key_table[256][256];
 
 
-bool printed = false;
 bitset<N> R[6], KEY;
 void differential_cryptanalysis() {
     bitset<N> p[2], r[6];
     Random(p[0]);
     p[1] = p[0];
     p[1][N - 56] = p[1][N - 56] ^ 1;
-//    p2[107] = p2[107] ^ 1;
-//    p2[50] = p2[50] ^ 1;
-//    bool gddt[256][256];
-//    for(int i = 0; i < 256;i++) {
-//        for (int j = 0; j < 256; j++)
-//            gddt[i][j] = 1;
-//    }
-//    for(int R = 0; R < 256; R++){
-//        DDT(R, gddt);
-//    }
 
+    // generate gddt
+    /*
+    bool gddt[256][256];
+    for(int i = 0; i < 256;i++) {
+        for (int j = 0; j < 256; j++)
+            gddt[i][j] = 1;
+    }
+    for(int R = 0; R < 256; R++){
+        DDT(R, gddt);
+    }*/
 
     bitset<64> t[2];
     bitset<N> key;
@@ -371,7 +370,8 @@ void diff_cryptanalysis_ChProbability() {
     //cout << (ciphertext[0] ^ ciphertext[1]) << endl << endl;
 }
 
-void Diff_crypt() {
+void calculate_characteristic_probability(int input_diff, int output_diff) {
+    // init keys for encryption
     bitset<64> t[2];
     bitset<N> key, rand[6];
     t[0] = key_val[0];
@@ -385,20 +385,9 @@ void Diff_crypt() {
             rand[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
     }
     bitset<N> K[3];
-    kcipher.KeyExpansion(key, K);
-    for (int i = 0; i < 3; i++)
-        cout << K[i] << endl;
-    cout << endl;
-    for (int i = 0; i < 6; i++)
-        cout << rand[i] << endl;
-//    for(int i = 0; i < 3; i++)
-//        Random(K[i]);
-//    for(int i = 0; i < 6; i++)
-//        Random(rand[i]);
-//
     bitset<N> p1, p2, c1, c2;
     int br = 0, br1 = 0, br2 = 0;
-    unsigned int p = pow(2, 18);
+    unsigned int number_of_experiments = pow(2, 18);
 
     bitset<N> expected_diff, exp1, exp2;
     for (int i = 0; i < N; i++) {
@@ -406,77 +395,49 @@ void Diff_crypt() {
         exp1[i] = 0;
         exp2[i] = 0;
     }
-
-    expected_diff.set(50);
-//    exp1.set(71);
-//    exp2.set(122);
-    //Print_in_blocks(exp1);
-
-    for (int i = 0; i < p; i++) {
+    expected_diff.set(output_diff);
+    for (int i = 0; i < number_of_experiments; i++) {
         Random(p1);
         p2 = p1;
-        p2[62] = p2[62] ^ 1;
-        //p2[103] = p2[103] ^ 1;
-        //p2[98] = p2[98] ^ 1;
-        //p2[97] = p2[97] ^ 1;
-        //Print_in_blocks(p1 ^ p2);
-        //cout << endl;
-//        c1 = p1; c2 = p2;
+        p2[input_diff] = p2[input_diff] ^ 1;
+
         c1 = p1 + K[0];
         c2 = p2 + K[0];
 
-
-        //Print_in_blocks(c1 ^ c2);
         c1 = kcipher.BitReordering(c1, 0);
         c2 = kcipher.BitReordering(c2, 0);
-        //Print_in_blocks(c1 ^ c2);
 
         c1 = kcipher.SBox(c1, rand, 0);
         c2 = kcipher.SBox(c2, rand, 0);
-        //Print_in_blocks(c1 ^ c2);
-        //round 2
 
+        //round 2
         c1 = c1 + K[1];
         c2 = c2 + K[1];
 
         c1 = kcipher.BitReordering(c1, 1);
         c2 = kcipher.BitReordering(c2, 1);
-        //Print_in_blocks(c1 ^ c2);
 
         c1 = kcipher.SBox(c1, rand, 1);
         c2 = kcipher.SBox(c2, rand, 1);
         c1 = c1 + K[2];
         c2 = c2 + K[2];
-        //Print_in_blocks(c1 ^ c2);
-        //*/
-
-        //expected_diff.set(97);
-        //Print_in_blocks(expected_diff);
 
         if ((c1 ^ c2) == expected_diff) {
             br++;
-            cout << expected_diff << endl;
             c1 = kcipher.BitReordering(c1, 2);
             c2 = kcipher.BitReordering(c2, 2);
             bitset<N> temp = c1 ^c2;
-//            for(int i = 127; i >= 0; i--){
-//                cout << temp[i];
-//                if(i % 8 == 0)
-//                    cout << "\t";
-//            }
-//            cout << endl << endl;
         }
-//        cout << "--------------------------" << endl;
     }
-    double prob1 = (double) br1 / p;
+    double prob1 = (double) br1 / number_of_experiments;
     prob1 = log2(prob1);
-    double prob2 = (double) br2 / p;
+    double prob2 = (double) br2 / number_of_experiments;
     prob2 = log2(prob2);
-    double proball = (double) br / p;
+    double proball = (double) br / number_of_experiments;
     proball = log2(proball);
 //    cout << "Br after round 1 = " << br1<<" , holds with prob "<<prob1 << endl;
 //    cout << "Br after round 2 " << br2 << " , holds with prob " << prob2 << endl;
-    cout << "Br after the 2 rounds " << br << " , holds with prob " << proball << endl;
+    cout << "Characteristic holds with probability 2^" << proball << endl;
 //    cout << "prob of scond holding when first did: " << log2((double)br / br1) << endl;
 
 }
@@ -484,24 +445,26 @@ void Diff_crypt() {
 using namespace std;
 
 int main(int argc, char **argv) {
-    Diff_crypt();
-//    int maxk = 0, maxr1 = 0;
-//    for (int i = 0; i < 256; i++) {
-//        for (int j = 0; j < 256; j++) {
-//            if (key_table[i][j] > key_table[maxk][maxr1]) {
-//                maxk = i;
-//                maxr1 = j;
-//            }
-//        }
-//    }
-//    cout << maxk << "\t" << maxr1 << endl;
-//    for (int i = 0; i < 256; i++) {
-//        for (int j = 0; j < 256; j++) {
-//            if (key_table[i][j] == key_table[maxk][maxr1])
-//                cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
-//            ffout << (int) key_table[i][j] << "\t";
-//        }
-//        ffout << endl;
-//    }
+    pair<int, int> charactersitic = {14, 82};
+    calculate_characteristic_probability(charactersitic.first, charactersitic.second);
+    //Guess keys
+    /*int maxk = 0, maxr1 = 0;
+    for (int i = 0; i < 256; i++) {
+        for (int j = 0; j < 256; j++) {
+            if (key_table[i][j] > key_table[maxk][maxr1]) {
+                maxk = i;
+                maxr1 = j;
+            }
+        }
+    }
+    cout << maxk << "\t" << maxr1 << endl;
+    for (int i = 0; i < 256; i++) {
+        for (int j = 0; j < 256; j++) {
+            if (key_table[i][j] == key_table[maxk][maxr1])
+                cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
+            ffout << (int) key_table[i][j] << "\t";
+        }
+        ffout << endl;
+    }*/
     return 0;
 }
