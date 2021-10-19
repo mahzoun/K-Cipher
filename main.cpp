@@ -12,6 +12,8 @@ ofstream fout("ddt.out");
 ofstream ffout("table.out");
 
 KCipher kcipher;
+uint64_t key_table[256][256];
+bool gddt[256][256];
 uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
                         0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
                         0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
@@ -42,6 +44,13 @@ bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
 static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
 // initialize Mersennes' twister using rd to generate the seed
 static std::mt19937 rng{ rd() };
+
+struct characteristic{
+    uint32_t input_diff;
+    uint32_t output_diff;
+    uint32_t sbox;
+    double probability;
+};
 
 void Random(bitset<N> &input) {
     static std::uniform_int_distribution<int> uid(0, 1); // random dice
@@ -74,6 +83,16 @@ void DDT(uint8_t r1, bool gddt[256][256]) {
             gddt[i][j] &= (ddt[i][j] > 0);
 }
 
+void Generate_GDDT(){
+    for(int i = 0; i < 256;i++) {
+        for (int j = 0; j < 256; j++)
+            gddt[i][j] = 1;
+    }
+    for(int R = 0; R < 256; R++){
+        DDT(R, gddt);
+    }
+}
+
 uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position) {
     bitset<M> temp;
     for (int i = 0; i < M; i++) {
@@ -87,44 +106,24 @@ uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position) {
     return block_val;
 }
 
-uint64_t key_table[256][256];
-
-
-bitset<N> R[6], KEY;
-void differential_cryptanalysis() {
+void differential_cryptanalysis(characteristic c) {
     bitset<N> p[2], r[6];
     Random(p[0]);
     p[1] = p[0];
-    p[1][N - 56] = p[1][N - 56] ^ 1;
-
-    // generate gddt
-    /*
-    bool gddt[256][256];
-    for(int i = 0; i < 256;i++) {
-        for (int j = 0; j < 256; j++)
-            gddt[i][j] = 1;
-    }
-    for(int R = 0; R < 256; R++){
-        DDT(R, gddt);
-    }*/
-
+    p[1][c.input_diff] = p[1][c.output_diff] ^ 1;
     bitset<64> t[2];
     bitset<N> key;
     t[0] = key_val[0];
     t[1] = key_val[1];
-//    for (int i = 0; i < 128; i++)
-//        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
-//    for (int i = 0; i < 6; i++) {
-//        t[0] = key_val[2 * i + 2];
-//        t[1] = key_val[2 * i + 3];
-//        for (int j = 0; j < 128; j++)
-//            r[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
-//    }
+    for (int i = 0; i < 128; i++)
+        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
+    for (int i = 0; i < 6; i++) {
+        t[0] = key_val[2 * i + 2];
+        t[1] = key_val[2 * i + 3];
+        for (int j = 0; j < 128; j++)
+            r[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
+    }
 
-    key = KEY;
-
-    for(int i = 0; i < 6; i++)
-        r[i] = R[i];
     bitset<N> ciphertext[2];
     for (int i = 0; i < 2; i++)
         ciphertext[i] = kcipher.EncCPA(p[i], key, r);
@@ -134,243 +133,16 @@ void differential_cryptanalysis() {
 //    uint16_t k = 0x3b;
     for (uint16_t k = 0; k < 256; k++) {
         for (uint16_t r1 = 0; r1 < 256; r1++) {
-            res[0] = partial_dec(ciphertext[0], r1, k, 7);
-            res[1] = partial_dec(ciphertext[1], r1, k, 7);
-            if ((res[0] ^ res[1]) == expected_difference)
+            res[0] = partial_dec(ciphertext[0], r1, k, c.sbox);
+            res[1] = partial_dec(ciphertext[1], r1, k, c.sbox);
+            if ((res[0] ^ res[1]) == expected_difference) {
                 key_table[k][r1]++;
+            }
         }
     }
 }
 
-
-void diff_cryptanalysis_ChProbability() {
-    uint32_t counterDiffProb;
-    uint32_t total;
-
-    total = 1024 * 128;
-    counterDiffProb = 0;
-
-    cout << "total = " << total << endl;
-
-    //I try to generate the key at random to get a better intuition on the probability.
-    //for (int i = 0;i < 7;i++)
-    //{
-    //	bitset<N> temp_k;
-    //	Random(temp_k);
-    //	//cout << temp_k << endl;
-
-    //	bitset<64> tmp1, tmp2;
-
-    //	for (uint8_t j = 0;j < 64;j++)
-    //	{
-    //		tmp1[j] = temp_k[j];
-
-    //	}
-
-    //	//	//cout << tmp1 << endl;
-
-    //	for (uint8_t j = 64;j < 128;j++)
-    //	{
-    //		tmp2[j - 64] = temp_k[j];
-
-    //	}
-
-    //	//	//cout << tmp2 << endl;
-
-    //	key_val[2 * i] = tmp1.to_ullong();
-    //	key_val[2 * i + 1] = tmp2.to_ullong();
-    //}
-
-    //cout << key_val[0] << endl;
-
-
-    bitset<64> t[2];
-    bitset<N> key;
-    t[0] = key_val[0];
-    t[1] = key_val[1];
-    for (int i = 0; i < 128; i++)
-        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
-
-    bitset<N> K[3];
-    kcipher.KeyExpansion(key, K);
-
-    bitset<N> rand[6];
-    t[0] = key_val[0];
-    t[1] = key_val[1];
-    for (int i = 0; i < 128; i++)
-        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
-    for (int i = 0; i < 6; i++) {
-        t[0] = key_val[2 * i + 2];
-        t[1] = key_val[2 * i + 3];
-        for (int j = 0; j < 128; j++)
-            rand[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
-    }
-
-    for (int T = 0; T < total; T++) {
-        //std::cout << "iteration: " << T << "  ";
-        bitset<N> p1, p2;//, r[6];
-        Random(p1);
-        p2 = p1;
-
-        uint8_t index1 = N - 56;//N - 1;//N-56;
-        p2[index1] = p2[index1] ^ 1;
-
-
-        bitset<N> ciphertext[2];
-        //ciphertext[0] = p1 + K[0];
-        //ciphertext[1] = p2 + K[0];
-
-        ciphertext[0] = p1;
-        ciphertext[1] = p2;
-        /*	cout << rand[0] << endl;
-            cout << rand[1] << endl;
-            cout << rand[2] << endl;
-            cout << rand[3] << endl;
-            cout << rand[4] << endl;
-            cout << rand[5] << endl;*/
-
-        int round = 0;
-        //for (int i = 0; i < 2; i++) {
-
-        /*	ciphertext[0] = kcipher.BitReordering(ciphertext[0], 10);
-            ciphertext[1] = kcipher.BitReordering(ciphertext[1], 10);
-
-            cout << (ciphertext[0] ^ ciphertext[1]) << endl;*/
-
-        //ciphertext[0] = kcipher.SBox(ciphertext[0], rand, round-1);
-        //ciphertext[1] = kcipher.SBox(ciphertext[1], rand, round-1);
-        round = 0;
-        //for (round = 0;round <= 1;round++)
-        {
-            ciphertext[0] = ciphertext[0] + K[round];
-            ciphertext[1] = ciphertext[1] + K[round];
-
-            ciphertext[0] = kcipher.BitReordering(ciphertext[0], round);
-            ciphertext[1] = kcipher.BitReordering(ciphertext[1], round);
-            // cout << (ciphertext[0] ^ ciphertext[1]) << endl;
-
-            ciphertext[0] = kcipher.SBox(ciphertext[0], rand, round);
-            ciphertext[1] = kcipher.SBox(ciphertext[1], rand, round);
-            //if((round==0))
-            // cout << (ciphertext[0] ^ ciphertext[1]) << endl;
-        }
-        //ciphertext[0] = ciphertext[0] + K[1];
-        //ciphertext[1] = ciphertext[1] + K[1];
-        // cout << (ciphertext[0] ^ ciphertext[1]) << endl;
-
-        //ciphertext[0] = kcipher.BitReordering(ciphertext[0], 1);
-        //ciphertext[1] = kcipher.BitReordering(ciphertext[1], 1);
-        //cout << (ciphertext[0] ^ ciphertext[1]) << endl;
-
-        //ciphertext[0] = kcipher.SBox(ciphertext[0], rand, 1);
-        // ciphertext[1] = kcipher.SBox(ciphertext[1], rand, 1);
-
-        //ciphertext[0] = ciphertext[0] + K[2];
-        //ciphertext[1] = ciphertext[1] + K[2];
-
-        //ciphertext[0] = kcipher.BitReordering(ciphertext[0], 0);
-        //ciphertext[1] = kcipher.BitReordering(ciphertext[1], 0);
-
-        // cout << (ciphertext[0] ^ ciphertext[1]) << endl;
-        // cout << (ciphertext[0] ^ ciphertext[1]) << endl;
-        //cout << "-------------------------------------------------" << endl;
-        //ciphertext[i] = ciphertext[i] + K[2];
-        //}
-
-        int counter = 0;
-        for (int i = N - 8; i >= 0; i -= 8) {
-            bitset<8> cur_box;
-            for (int j = 0; j < 8; j++)
-                cur_box[j] = ciphertext[0][i + j] ^ ciphertext[1][i + j];
-            if (cur_box.to_ulong() > 0)
-                counter++;
-
-            //cout << hex << cur_box.to_ulong() << "  ";
-        }
-        //cout << " | " << counter << " -> ";
-
-        bool flag = true;
-
-        for (int i = 0; i < N; i++) {
-            if (i == (N - 1)) {
-                if (ciphertext[0][i] == ciphertext[1][i])
-                    flag = false;
-            } else {
-                if (ciphertext[0][i] != ciphertext[1][i])
-                    flag = false;
-            }
-
-        }
-
-
-        /*
-            for (int i = 0;i < N;i++)
-            {
-                if ((i > (N - 17))||(i<(N-24)))
-                {
-                    if (ciphertext[0][i] != ciphertext[1][i])
-                        flag = false;
-                }
-
-            }*/
-
-        if (flag == true) {
-            //cout << ciphertext[0] << endl << ciphertext[1] << endl << (ciphertext[0] ^ ciphertext[1]) << endl<<endl;
-
-            round = 1;
-            ciphertext[0] = ciphertext[0] + K[round];
-            ciphertext[1] = ciphertext[1] + K[round];
-
-            ciphertext[0] = kcipher.BitReordering(ciphertext[0], round);
-            ciphertext[1] = kcipher.BitReordering(ciphertext[1], round);
-
-            ciphertext[0] = kcipher.SBox(ciphertext[0], rand, round);
-            ciphertext[1] = kcipher.SBox(ciphertext[1], rand, round);
-
-            //cout << (ciphertext[0] ^ ciphertext[1]) << endl <<endl;
-            //cout << counterDiffProb<<endl;
-
-
-            if ((ciphertext[0] ^ ciphertext[1]).count() == 1) {
-                cout << (ciphertext[0] ^ ciphertext[1]) << endl << endl;
-
-                bool flag1 = true;
-
-                for (int i = 0; i < N; i++) {
-                    if (i == (N - 22)) {
-                        if (ciphertext[0][i] == ciphertext[1][i])
-                            flag1 = false;
-                    } else {
-                        if (ciphertext[0][i] != ciphertext[1][i])
-                            flag1 = false;
-                    }
-
-                }
-
-                if (flag1 == true)
-                    counterDiffProb++;
-            }
-
-        }
-
-
-        //std::cout << counterDiffProb << endl;
-    }
-
-    std::cout << dec << counterDiffProb << "/" << total << endl;
-    //    for (int i = 0; i < 2; i++) {
-    //        ciphertext[i] = kcipher.SBox(ciphertext[i], r, 0);
-    //    }
-    //    for (int i = N - 1; i >= 0; i--) {
-    //        cout << (ciphertext[0][i] ^ ciphertext[1][i]);
-    //        if ((i) % 8 == 0)
-    //            cout << "\t";
-    //    }
-    //    cout << endl << endl;
-    //cout << (ciphertext[0] ^ ciphertext[1]) << endl << endl;
-}
-
-void calculate_characteristic_probability(int input_diff, int output_diff) {
+void calculate_characteristic_probability(characteristic c) {
     // init keys for encryption
     bitset<64> t[2];
     bitset<N> key, rand[6];
@@ -395,12 +167,11 @@ void calculate_characteristic_probability(int input_diff, int output_diff) {
         exp1[i] = 0;
         exp2[i] = 0;
     }
-    expected_diff.set(output_diff);
+    expected_diff.set(c.output_diff);
     for (int i = 0; i < number_of_experiments; i++) {
         Random(p1);
         p2 = p1;
-        p2[input_diff] = p2[input_diff] ^ 1;
-
+        p2[c.input_diff] = p2[c.input_diff] ^ 1;
         c1 = p1 + K[0];
         c2 = p2 + K[0];
 
@@ -421,12 +192,10 @@ void calculate_characteristic_probability(int input_diff, int output_diff) {
         c2 = kcipher.SBox(c2, rand, 1);
         c1 = c1 + K[2];
         c2 = c2 + K[2];
-
+        c1 = kcipher.BitReordering(c1, 2);
+        c2 = kcipher.BitReordering(c2, 2);
         if ((c1 ^ c2) == expected_diff) {
             br++;
-            c1 = kcipher.BitReordering(c1, 2);
-            c2 = kcipher.BitReordering(c2, 2);
-            bitset<N> temp = c1 ^c2;
         }
     }
     double prob1 = (double) br1 / number_of_experiments;
@@ -435,20 +204,61 @@ void calculate_characteristic_probability(int input_diff, int output_diff) {
     prob2 = log2(prob2);
     double proball = (double) br / number_of_experiments;
     proball = log2(proball);
+    c.probability = proball;
 //    cout << "Br after round 1 = " << br1<<" , holds with prob "<<prob1 << endl;
 //    cout << "Br after round 2 " << br2 << " , holds with prob " << prob2 << endl;
-    cout << "Characteristic holds with probability 2^" << proball << endl;
+    cout << "Characteristic holds with probability 2^" << c.probability << endl;
 //    cout << "prob of scond holding when first did: " << log2((double)br / br1) << endl;
 
 }
 
 using namespace std;
 
-int main(int argc, char **argv) {
-    pair<int, int> charactersitic = {14, 82};
-    calculate_characteristic_probability(charactersitic.first, charactersitic.second);
-    //Guess keys
-    /*int maxk = 0, maxr1 = 0;
+void test_() {
+    uint8_t block_val, k, r1;
+    uint64_t counter = 0;
+    for(int i = 0; i < 256; i++){
+        for(int j = 0; j < 256; j++){
+            for(int ii = 0; ii < 256; ii++){
+                counter++;
+                block_val = i;
+                k = j;
+                r1 = ii;
+                uint8_t temp = block_val, temp2 = block_val;
+                uint8_t k_temp = k + 2;
+                uint8_t r1_temp = r1 + 128;
+                temp2 ^= k;
+                temp2 = ROTR8(temp2, 2);
+                temp2 -= r1;
+                temp2 = kcipher.sbox_inv[temp2];
+                temp ^= k_temp;
+                temp = ROTR8(temp, 2);
+                temp -= r1_temp;
+                temp = kcipher.sbox_inv[temp];
+                if(k == 77 & temp != temp2)
+                    cout << counter  << "\t" << (int)block_val << "\t" << (int)k << "\t" <<  (int)r1 << "\t" << (int)r1_temp << "\t" << (int)k << "\t" << (int)k_temp << "\t" << (int)temp2 << "\t" << (int)temp <<endl;
+            }
+        }
+    }
+
+}
+int main(){
+    ios_base::sync_with_stdio(false);
+    test_();
+    return 0;
+}
+int main2(int argc, char **argv) {
+    characteristic c;
+    c.input_diff = 8;
+    c.output_diff = 23;
+    c.sbox = 8;
+    //calculate_characteristic_probability(c);
+    for (int i = 0; i < (1<<16); i++) {
+        if (i % 4096  == 0)
+            cerr << i << endl;
+        differential_cryptanalysis(c);
+    }
+    int maxk = 0, maxr1 = 0;
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++) {
             if (key_table[i][j] > key_table[maxk][maxr1]) {
@@ -461,10 +271,10 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++) {
             if (key_table[i][j] == key_table[maxk][maxr1])
-                cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
+               cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
             ffout << (int) key_table[i][j] << "\t";
         }
         ffout << endl;
-    }*/
+    }
     return 0;
 }
