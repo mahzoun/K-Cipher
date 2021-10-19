@@ -235,19 +235,15 @@ void test_() {
                 temp = ROTR8(temp, 2);
                 temp -= r1_temp;
                 temp = kcipher.sbox_inv[temp];
-                if(k == 77 & temp != temp2)
+                if(k % 4 ==0 & temp != temp2)
                     cout << counter  << "\t" << (int)block_val << "\t" << (int)k << "\t" <<  (int)r1 << "\t" << (int)r1_temp << "\t" << (int)k << "\t" << (int)k_temp << "\t" << (int)temp2 << "\t" << (int)temp <<endl;
             }
         }
     }
 
 }
-int main(){
+int main(int argc, char **argv) {
     ios_base::sync_with_stdio(false);
-    test_();
-    return 0;
-}
-int main2(int argc, char **argv) {
     characteristic c;
     c.input_diff = 8;
     c.output_diff = 23;
