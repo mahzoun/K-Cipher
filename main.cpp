@@ -244,33 +244,35 @@ void test_() {
 }
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(false);
-    characteristic c;
-    c.input_diff = 8;
-    c.output_diff = 23;
-    c.sbox = 8;
-    //calculate_characteristic_probability(c);
-    for (int i = 0; i < (1<<16); i++) {
-        if (i % 4096  == 0)
-            cerr << i << endl;
-        differential_cryptanalysis(c);
-    }
-    int maxk = 0, maxr1 = 0;
-    for (int i = 0; i < 256; i++) {
-        for (int j = 0; j < 256; j++) {
-            if (key_table[i][j] > key_table[maxk][maxr1]) {
-                maxk = i;
-                maxr1 = j;
+    uint8_t c_arr[16][3] = {{62, 124, 10}, {36, 117, 6}, {33, 108, 7}, {117, 101, 12}, {14, 92, 6},
+                            {45, 86, 3}, {102, 79, 9}, {126, 67, 1}, {106, 63, 12}, {90, 52, 7}, {34, 47, 12},
+                            {98, 31, 4}, {28, 28, 13}, {8, 23, 8}, {118, 15, 7}, {41, 6, 12}};
+    for(int t = 0; t < 16; t++) {
+        characteristic c;
+        c.input_diff = c_arr[t][0];
+        c.output_diff = c_arr[t][1];
+        c.sbox = c_arr[t][2];
+        //calculate_characteristic_probability(c);
+        for (int i = 0; i < (1 << 16); i++) {
+            differential_cryptanalysis(c);
+        }
+        int maxk = 0, maxr1 = 0;
+        for (int i = 0; i < 256; i++) {
+            for (int j = 0; j < 256; j++) {
+                if (key_table[i][j] > key_table[maxk][maxr1]) {
+                    maxk = i;
+                    maxr1 = j;
+                }
             }
         }
-    }
-    cout << maxk << "\t" << maxr1 << endl;
-    for (int i = 0; i < 256; i++) {
-        for (int j = 0; j < 256; j++) {
-            if (key_table[i][j] == key_table[maxk][maxr1])
-               cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
-            ffout << (int) key_table[i][j] << "\t";
+        cout << c.input_diff << "\t" << c.output_diff << "\t" << c.probability << "\t" << c.sbox << endl;
+        for (int i = 0; i < 256; i++) {
+            for (int j = 0; j < 256; j++) {
+                if (key_table[i][j] == key_table[maxk][maxr1])
+                    cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
+            }
         }
-        ffout << endl;
+        cout << "\n________________________\n";
     }
     return 0;
 }
