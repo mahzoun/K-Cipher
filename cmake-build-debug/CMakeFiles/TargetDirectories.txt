@@ -1,3 +1,0 @@
-/home/mairon/CLionProjects/K-Cipher/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/mairon/CLionProjects/K-Cipher/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/mairon/CLionProjects/K-Cipher/cmake-build-debug/CMakeFiles/K_Cipher.dir
