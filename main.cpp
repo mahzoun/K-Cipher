@@ -7,7 +7,6 @@
 
 #define ROTL8(x, shift) ((uint8_t) ((x) << (shift)) | ((x) >> (8 - (shift))))
 #define ROTR8(x, shift) ((uint8_t) ((x) >> (shift)) | ((x) << (8 - (shift))))
-
 ofstream fout("ddt.out");
 ofstream ffout("table.out");
 
@@ -93,7 +92,7 @@ void Generate_GDDT(){
     }
 }
 
-uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position) {
+uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position, int rounds) {
     bitset<M> temp;
     for (int i = 0; i < M; i++) {
         temp[i] = ct[128 - 8 * position + i];
@@ -110,7 +109,7 @@ void differential_cryptanalysis(characteristic c) {
     bitset<N> p[2], r[6];
     Random(p[0]);
     p[1] = p[0];
-    p[1][c.input_diff] = p[1][c.output_diff] ^ 1;
+    p[1][c.input_diff] = p[1][c.input_diff] ^ 1;
     bitset<64> t[2];
     bitset<N> key;
     t[0] = key_val[0];
@@ -128,13 +127,13 @@ void differential_cryptanalysis(characteristic c) {
     for (int i = 0; i < 2; i++)
         ciphertext[i] = kcipher.EncCPA(p[i], key, r);
     uint8_t res[2];
-    uint8_t expected_difference = 4;
+    uint8_t expected_difference = 1 << (c.output_diff % 8);
 //    uint16_t r1 = 0xb1;
 //    uint16_t k = 0x3b;
     for (uint16_t k = 0; k < 256; k++) {
         for (uint16_t r1 = 0; r1 < 256; r1++) {
-            res[0] = partial_dec(ciphertext[0], r1, k, c.sbox);
-            res[1] = partial_dec(ciphertext[1], r1, k, c.sbox);
+            res[0] = partial_dec(ciphertext[0], r1, k, c.sbox, 0);
+            res[1] = partial_dec(ciphertext[1], r1, k, c.sbox, 0);
             if ((res[0] ^ res[1]) == expected_difference) {
                 key_table[k][r1]++;
             }
@@ -214,44 +213,25 @@ void calculate_characteristic_probability(characteristic c) {
 
 using namespace std;
 
-void test_() {
-    uint8_t block_val, k, r1;
-    uint64_t counter = 0;
-    for(int i = 0; i < 256; i++){
-        for(int j = 0; j < 256; j++){
-            for(int ii = 0; ii < 256; ii++){
-                counter++;
-                block_val = i;
-                k = j;
-                r1 = ii;
-                uint8_t temp = block_val, temp2 = block_val;
-                uint8_t k_temp = k + 2;
-                uint8_t r1_temp = r1 + 128;
-                temp2 ^= k;
-                temp2 = ROTR8(temp2, 2);
-                temp2 -= r1;
-                temp2 = kcipher.sbox_inv[temp2];
-                temp ^= k_temp;
-                temp = ROTR8(temp, 2);
-                temp -= r1_temp;
-                temp = kcipher.sbox_inv[temp];
-                if(k % 4 ==0 & temp != temp2)
-                    cout << counter  << "\t" << (int)block_val << "\t" << (int)k << "\t" <<  (int)r1 << "\t" << (int)r1_temp << "\t" << (int)k << "\t" << (int)k_temp << "\t" << (int)temp2 << "\t" << (int)temp <<endl;
-            }
-        }
-    }
-
-}
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(false);
-    uint8_t c_arr[16][3] = {{62, 124, 10}, {36, 117, 6}, {33, 108, 7}, {117, 101, 12}, {14, 92, 6},
-                            {45, 86, 3}, {102, 79, 9}, {126, 67, 1}, {106, 63, 12}, {90, 52, 7}, {34, 47, 12},
-                            {98, 31, 4}, {28, 28, 13}, {8, 23, 8}, {118, 15, 7}, {41, 6, 12}};
+    uint8_t c_arr_1[16][3] = {{62, 124, 1}, {36, 117, 2}, {33, 108, 3}, {117, 101, 4}, {14, 92, 5},
+                            {45, 86, 6}, {102, 79, 7}, {126, 67, 8}, {106, 63, 9}, {90, 52, 10}, {34, 47, 11},
+                            {98, 31, 12}, {28, 28, 13}, {8, 23, 14}, {118, 15, 15}, {41, 6, 16}};
+    uint8_t c_arr_2[16][3] = {{62, 124, 10}, {36, 117, 6}, {33, 108, 7}, {117, 101, 12}, {14, 92, 6},
+                              {45, 86, 3}, {102, 79, 9}, {126, 67, 1}, {106, 63, 12}, {90, 52, 7}, {34, 47, 12},
+                              {98, 31, 4}, {28, 28, 13}, {8, 23, 8}, {118, 15, 7}, {41, 6, 12}};
+    uint8_t c_arr_3[16][3] = {{62, 124, 10}, {36, 117, 6}, {33, 108, 7}, {117, 101, 12}, {14, 92, 6},
+                              {45, 86, 3}, {102, 79, 9}, {126, 67, 1}, {106, 63, 12}, {90, 52, 7}, {34, 47, 12},
+                              {98, 31, 4}, {28, 28, 13}, {8, 23, 8}, {118, 15, 7}, {41, 6, 12}};
     for(int t = 0; t < 16; t++) {
+        for(int i = 0; i < 256; i++)
+            for(int j = 0; j < 256; j++)
+                key_table[i][j] = 0;
         characteristic c;
-        c.input_diff = c_arr[t][0];
-        c.output_diff = c_arr[t][1];
-        c.sbox = c_arr[t][2];
+        c.input_diff = c_arr_1[t][0];
+        c.output_diff = c_arr_1[t][1];
+        c.sbox = c_arr_1[t][2];
         //calculate_characteristic_probability(c);
         for (int i = 0; i < (1 << 16); i++) {
             differential_cryptanalysis(c);
@@ -269,7 +249,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 256; j++) {
                 if (key_table[i][j] == key_table[maxk][maxr1])
-                    cout << i << "\t" << j << "\t" << key_table[i][j] << endl;
+                    cout << hex << i << "\t" << j << "\t" << key_table[i][j] << endl;
             }
         }
         cout << "\n________________________\n";
