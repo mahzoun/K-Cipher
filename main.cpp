@@ -12,6 +12,8 @@ ofstream ffout("table.out");
 
 KCipher kcipher;
 uint64_t key_table[256][256];
+bitset<128> k3_candidates[1 << 16], r12_candidates[1 << 16];
+uint16_t k3_bytes[2][16], r12_bytes[2][16];
 bool gddt[256][256];
 uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
                         0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
@@ -42,9 +44,9 @@ bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
 
 static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
 // initialize Mersennes' twister using rd to generate the seed
-static std::mt19937 rng{ rd() };
+static std::mt19937 rng{rd()};
 
-struct characteristic{
+struct characteristic {
     uint32_t input_diff;
     uint32_t output_diff;
     uint32_t sbox;
@@ -82,12 +84,12 @@ void DDT(uint8_t r1, bool gddt[256][256]) {
             gddt[i][j] &= (ddt[i][j] > 0);
 }
 
-void Generate_GDDT(){
-    for(int i = 0; i < 256;i++) {
+void Generate_GDDT() {
+    for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++)
             gddt[i][j] = 1;
     }
-    for(int R = 0; R < 256; R++){
+    for (int R = 0; R < 256; R++) {
         DDT(R, gddt);
     }
 }
@@ -211,22 +213,26 @@ void calculate_characteristic_probability(characteristic c) {
 
 }
 
-using namespace std;
-
-int main(int argc, char **argv) {
-    ios_base::sync_with_stdio(false);
-    uint8_t c_arr_1[16][3] = {{62, 124, 1}, {36, 117, 2}, {33, 108, 3}, {117, 101, 4}, {14, 92, 5},
-                            {45, 86, 6}, {102, 79, 7}, {126, 67, 8}, {106, 63, 9}, {90, 52, 10}, {34, 47, 11},
-                            {98, 31, 12}, {28, 28, 13}, {8, 23, 14}, {118, 15, 15}, {41, 6, 16}};
-    uint8_t c_arr_2[16][3] = {{62, 124, 10}, {36, 117, 6}, {33, 108, 7}, {117, 101, 12}, {14, 92, 6},
-                              {45, 86, 3}, {102, 79, 9}, {126, 67, 1}, {106, 63, 12}, {90, 52, 7}, {34, 47, 12},
-                              {98, 31, 4}, {28, 28, 13}, {8, 23, 8}, {118, 15, 7}, {41, 6, 12}};
-    uint8_t c_arr_3[16][3] = {{62, 124, 10}, {36, 117, 6}, {33, 108, 7}, {117, 101, 12}, {14, 92, 6},
-                              {45, 86, 3}, {102, 79, 9}, {126, 67, 1}, {106, 63, 12}, {90, 52, 7}, {34, 47, 12},
-                              {98, 31, 4}, {28, 28, 13}, {8, 23, 8}, {118, 15, 7}, {41, 6, 12}};
-    for(int t = 0; t < 16; t++) {
-        for(int i = 0; i < 256; i++)
-            for(int j = 0; j < 256; j++)
+void last_round_attack() {
+    uint8_t c_arr_1[16][3] = {{62,  124, 1},
+                              {36,  117, 2},
+                              {33,  108, 3},
+                              {117, 101, 4},
+                              {14,  92,  5},
+                              {45,  86,  6},
+                              {102, 79,  7},
+                              {126, 67,  8},
+                              {106, 63,  9},
+                              {90,  52,  10},
+                              {34,  47,  11},
+                              {98,  31,  12},
+                              {28,  28,  13},
+                              {8,   23,  14},
+                              {118, 15,  15},
+                              {41,  6,   16}};
+    for (int t = 0; t < 16; t++) {
+        for (int i = 0; i < 256; i++)
+            for (int j = 0; j < 256; j++)
                 key_table[i][j] = 0;
         characteristic c;
         c.input_diff = c_arr_1[t][0];
@@ -246,13 +252,75 @@ int main(int argc, char **argv) {
             }
         }
         cout << c.input_diff << "\t" << c.output_diff << "\t" << c.probability << "\t" << c.sbox << endl;
+        int tmp_index = 0;
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 256; j++) {
-                if (key_table[i][j] == key_table[maxk][maxr1])
+                if (key_table[i][j] == key_table[maxk][maxr1]) {
                     cout << hex << i << "\t" << j << "\t" << key_table[i][j] << endl;
+                    int index = t < 8 ? t + 8 : t - 8;
+                    k3_bytes[tmp_index][index] = i;
+                    r12_bytes[tmp_index][index] = j;
+                    tmp_index++;
+                    if (tmp_index > 1) {
+                        cout << "More than two candidates found, there must be a problem.\n";
+                        return;
+                    }
+                }
             }
         }
         cout << "\n________________________\n";
     }
+    for (uint32_t I = 0; I < (1 << 16); I++) {
+        uint32_t temp = I;
+        for (int idx = 0; idx < 16; idx++) {
+            bitset<8> cur_key = k3_bytes[temp % 2][15 - idx];
+            bitset<8> cur_rand = r12_bytes[temp % 2][15 - idx];
+            temp/=2;
+            for (int i = 0; i < 8; i++) {
+                k3_candidates[I][idx * 8 + i] = cur_key[i];
+                r12_candidates[I][idx * 8 + i] = cur_rand[i];
+            }
+        }
+    }
+}
+
+using namespace std;
+
+int main(int argc, char **argv) {
+    ios_base::sync_with_stdio(false);
+
+    uint8_t c_arr_2[16][3] = {{62,  124, 10},
+                              {36,  117, 6},
+                              {33,  108, 7},
+                              {117, 101, 12},
+                              {14,  92,  6},
+                              {45,  86,  3},
+                              {102, 79,  9},
+                              {126, 67,  1},
+                              {106, 63,  12},
+                              {90,  52,  7},
+                              {34,  47,  12},
+                              {98,  31,  4},
+                              {28,  28,  13},
+                              {8,   23,  8},
+                              {118, 15,  7},
+                              {41,  6,   12}};
+    uint8_t c_arr_3[16][3] = {{62,  124, 10},
+                              {36,  117, 6},
+                              {33,  108, 7},
+                              {117, 101, 12},
+                              {14,  92,  6},
+                              {45,  86,  3},
+                              {102, 79,  9},
+                              {126, 67,  1},
+                              {106, 63,  12},
+                              {90,  52,  7},
+                              {34,  47,  12},
+                              {98,  31,  4},
+                              {28,  28,  13},
+                              {8,   23,  8},
+                              {118, 15,  7},
+                              {41,  6,   12}};
+    last_round_attack();
     return 0;
 }
