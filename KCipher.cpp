@@ -1,5 +1,5 @@
 //
-// Created by sauron on 3/9/21.
+// Created by Mairon on 3/9/21.
 //
 
 #include <bit>
@@ -113,47 +113,41 @@ bitset<N> KCipher::Inv_SBox(bitset<N> input, bitset<N> rand[], int index) {
 }
 
 bitset<128> KCipher::EncCPA(bitset<128> input, bitset<128> key, bitset<128> rand[]) {
-//    cerr << input << endl;
     bitset<N> K[3];
     KeyExpansion(key, K);
-//    bitset<N> temp = BitReordering(K[2], 3);
-//    for(int i = N-1 ; i >= 0; i--){
-//        cout << temp[i];
-//        if(i % 8 == 0)
-//            cout <<"\t";
-//    }
-//    cout << endl;
     for (int i = 0; i < 3; i++) {
         input = input + K[i];
-//        cerr << input << endl;
         input = BitReordering(input, i);
-//        cerr << i << "\t" << input << endl;
         input = SBox(input, rand, i);
-//        cerr << i << "\t" << input << endl;
     }
     bitset<N> veil = BitReordering(K[2], 3);
-//    cerr << (input ^ veil) << endl;
     return input ^ veil;
 }
 
+bitset<128> KCipher::EncCPAPartial(bitset<128> input, bitset<128> key, bitset<128> rand[], int rounds) {
+    bitset<N> K[3];
+    KeyExpansion(key, K);
+    for (int i = 0; i < rounds ; i++) {
+        input = input + K[i];
+        input = BitReordering(input, i);
+        input = SBox(input, rand, i);
+    }
+    input = input + K[rounds];
+    input = BitReordering(input, rounds);
+    input = input ^ rand[2 * rounds];
+    return input;
+}
+
 bitset<128> KCipher::DecCPA(bitset<128> input, bitset<128> key, bitset<128> rand[]) {
-//    cerr << "\n___________________\n";
-//    cerr << input << endl;
     bitset<N> K[3];
     KeyExpansion(key, K);
     bitset<N> veil = BitReordering(K[2], 3);
     input = input ^ veil;
-//    cerr << input << endl;
     for (int i = 0; i < 3; i++) {
-//        cerr << i << "\t" << input << endl;
         input = Inv_SBox(input, rand, 2 - i);
-//        cerr << i << "\t" << input << endl;
         input = BitReordering(input, 12 - i);
-//        cerr << input << endl;
         input = input - K[2 - i];
-//        cerr << input << endl;
     }
-//    cerr << "\n___________________\n";
     return input;
 }
 
