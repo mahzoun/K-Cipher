@@ -125,6 +125,7 @@ bitset<128> KCipher::EncCPA(bitset<128> input, bitset<128> key, bitset<128> rand
 }
 
 bitset<128> KCipher::EncCPAPartial(bitset<128> input, bitset<128> key, bitset<128> rand[], int rounds) {
+    // round = 2
     bitset<N> K[3];
     KeyExpansion(key, K);
     for (int i = 0; i < rounds ; i++) {
@@ -133,7 +134,7 @@ bitset<128> KCipher::EncCPAPartial(bitset<128> input, bitset<128> key, bitset<12
         input = SBox(input, rand, i);
     }
     input = input + K[rounds];
-    input = BitReordering(input, rounds);
+//    input = BitReordering(input, rounds);
     input = input ^ rand[2 * rounds];
     return input;
 }

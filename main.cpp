@@ -130,10 +130,10 @@ void differential_cryptanalysis(characteristic c, int phase = 0) {
     p[1][c.input_diff] = p[1][c.input_diff] ^ 1;
     bitset<N> ciphertext[2];
     for (int i = 0; i < 2; i++) {
-        if(phase == 0) {
+        if(phase == 0) { //last round
             ciphertext[i] = kcipher.EncCPA(p[i], key, randomizers);
         }
-        else{
+        else{ // second round phase = 1 and third round phase = 2
             ciphertext[i] = kcipher.EncCPAPartial(p[i], key, randomizers, 3 - phase);
         }
     }
@@ -188,9 +188,6 @@ void calculate_characteristic_probability(characteristic c) {
 
 //        c1 = kcipher.SBox(c1, randomizers, 1);
 //        c2 = kcipher.SBox(c2, randomizers, 1);
-
-        c1 = c1 ^ randomizers[2];
-        c2 = c2 ^ randomizers[2];
 //        c1 = c1 + K[2];
 //        c2 = c2 + K[2];
 //        c1 = kcipher.BitReordering(c1, 2);
@@ -301,7 +298,7 @@ void second_round_attack() {
                               {8,   66,  8},
                               {83,  10,  15},
                               {113, 0,  16}};
-    for (int t = 0; t < 16; t++) {
+    for (int t = 0; t < 1; t++) {
         for (int i = 0; i < 256; i++)
             for (int j = 0; j < 256; j++)
                 key_table[i][j] = 0;
@@ -312,12 +309,12 @@ void second_round_attack() {
         for (int i = 0; i < (1 << 16); i++) {
             differential_cryptanalysis(c, 1);
         }
-        int maxk = 0, maxr1 = 0;
+        int maxr11 = 0, maxr20 = 0;
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 256; j++) {
-                if (key_table[i][j] > key_table[maxk][maxr1]) {
-                    maxk = i;
-                    maxr1 = j;
+                if (key_table[i][j] > key_table[maxr20][maxr11]) {
+                    maxr20 = i;
+                    maxr11 = j;
                 }
             }
         }
@@ -325,7 +322,7 @@ void second_round_attack() {
         int tmp_index = 0;
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 256; j++) {
-                if (key_table[i][j] == key_table[maxk][maxr1]) {
+                if (key_table[i][j] == key_table[maxr20][maxr11]) {
                     cout << hex << i << "\t" << j << "\t" << key_table[i][j] << endl;
                 }
             }
