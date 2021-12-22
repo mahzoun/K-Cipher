@@ -11,10 +11,11 @@ ofstream fout("ddt.out");
 ofstream ffout("table.out");
 
 KCipher kcipher;
-uint64_t key_table[256][256];
-bitset<128> k3_candidates[1 << 16], r12_candidates[1 << 16];
+bitset<N> key, r[6];
+uint64_t key_table[1<<M][1<<M];
+bitset<N> k3_candidates[1 << 16], r12_candidates[1 << 16];
 uint16_t k3_bytes[2][16], r12_bytes[2][16];
-bool gddt[256][256];
+bool gddt[1<<M][1<<M];
 uint64_t key_val[14] = {0x27aef6116c4db0e6, 0x2779d02d3094d1df, 0xb8c0ad914767ba80, 0x6ca98308d45d1f79,
                         0xd75f78588ceaf21a, 0x3190bc4bfa457450, 0x92fd07e27f65d6c2, 0xd632a79fd631870c,
                         0x235548ef50bd1c1f, 0x002440be99b4d4ba, 0x1d038d1d35d9cd0f, 0xb1336f128aaebf73,
@@ -57,6 +58,12 @@ void Random(bitset<N> &input) {
     static std::uniform_int_distribution<int> uid(0, 1); // random dice
     for (int i = 0; i < N; i++)
         input[i] = uid(rng);
+}
+
+void Init(){
+    Random(key);
+    for(int i = 0; i < 6; i++)
+        Random(r[i]);
 }
 
 void DDT(uint8_t r1, bool gddt[256][256]) {
@@ -108,30 +115,15 @@ uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position, int round
 }
 
 void differential_cryptanalysis(characteristic c) {
-    bitset<N> p[2], r[6];
+    bitset<N> p[2];
+    bitset<N> ciphertext[2];
     Random(p[0]);
     p[1] = p[0];
     p[1][c.input_diff] = p[1][c.input_diff] ^ 1;
-    bitset<64> t[2];
-    bitset<N> key;
-    t[0] = key_val[0];
-    t[1] = key_val[1];
-    for (int i = 0; i < 128; i++)
-        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
-    for (int i = 0; i < 6; i++) {
-        t[0] = key_val[2 * i + 2];
-        t[1] = key_val[2 * i + 3];
-        for (int j = 0; j < 128; j++)
-            r[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
-    }
-
-    bitset<N> ciphertext[2];
     for (int i = 0; i < 2; i++)
         ciphertext[i] = kcipher.EncCPA(p[i], key, r);
     uint8_t res[2];
     uint8_t expected_difference = 1 << (c.output_diff % 8);
-//    uint16_t r1 = 0xb1;
-//    uint16_t k = 0x3b;
     for (uint16_t k = 0; k < 256; k++) {
         for (uint16_t r1 = 0; r1 < 256; r1++) {
             res[0] = partial_dec(ciphertext[0], r1, k, c.sbox, 0);
@@ -145,23 +137,11 @@ void differential_cryptanalysis(characteristic c) {
 
 void calculate_characteristic_probability(characteristic c) {
     // init keys for encryption
-    bitset<64> t[2];
-    bitset<N> key, rand[6];
-    t[0] = key_val[0];
-    t[1] = key_val[1];
-    for (int i = 0; i < 128; i++)
-        key[i] = i < 64 ? t[0][i] : t[1][i - 64];
-    for (int i = 0; i < 6; i++) {
-        t[0] = key_val[2 * i + 2];
-        t[1] = key_val[2 * i + 3];
-        for (int j = 0; j < 128; j++)
-            rand[i][j] = j < 64 ? t[0][j] : t[1][j - 64];
-    }
     bitset<N> K[3];
     bitset<N> p1, p2, c1, c2;
     int br = 0, br1 = 0, br2 = 0;
     unsigned int number_of_experiments = pow(2, 18);
-
+    kcipher.KeyExpansion(key, K);
     bitset<N> expected_diff, exp1, exp2;
     for (int i = 0; i < N; i++) {
         expected_diff[i] = 0;
@@ -179,8 +159,8 @@ void calculate_characteristic_probability(characteristic c) {
         c1 = kcipher.BitReordering(c1, 0);
         c2 = kcipher.BitReordering(c2, 0);
 
-        c1 = kcipher.SBox(c1, rand, 0);
-        c2 = kcipher.SBox(c2, rand, 0);
+        c1 = kcipher.SBox(c1, r, 0);
+        c2 = kcipher.SBox(c2, r, 0);
 
         //round 2
         c1 = c1 + K[1];
@@ -189,8 +169,8 @@ void calculate_characteristic_probability(characteristic c) {
         c1 = kcipher.BitReordering(c1, 1);
         c2 = kcipher.BitReordering(c2, 1);
 
-        c1 = kcipher.SBox(c1, rand, 1);
-        c2 = kcipher.SBox(c2, rand, 1);
+        c1 = kcipher.SBox(c1, r, 1);
+        c2 = kcipher.SBox(c2, r, 1);
         c1 = c1 + K[2];
         c2 = c2 + K[2];
         c1 = kcipher.BitReordering(c1, 2);
@@ -199,17 +179,10 @@ void calculate_characteristic_probability(characteristic c) {
             br++;
         }
     }
-    double prob1 = (double) br1 / number_of_experiments;
-    prob1 = log2(prob1);
-    double prob2 = (double) br2 / number_of_experiments;
-    prob2 = log2(prob2);
     double proball = (double) br / number_of_experiments;
     proball = log2(proball);
     c.probability = proball;
-//    cout << "Br after round 1 = " << br1<<" , holds with prob "<<prob1 << endl;
-//    cout << "Br after round 2 " << br2 << " , holds with prob " << prob2 << endl;
-    cout << "Characteristic holds with probability 2^" << c.probability << endl;
-//    cout << "prob of scond holding when first did: " << log2((double)br / br1) << endl;
+    cout << "Characteristic: " << c.input_diff << " -> " << c.output_diff << " on sbox number: " << c.sbox << " holds with probability: 2^" << c.probability << endl;
 
 }
 
@@ -238,7 +211,7 @@ void last_round_attack() {
         c.input_diff = c_arr_1[t][0];
         c.output_diff = c_arr_1[t][1];
         c.sbox = c_arr_1[t][2];
-        //calculate_characteristic_probability(c);
+        calculate_characteristic_probability(c);
         for (int i = 0; i < (1 << 16); i++) {
             differential_cryptanalysis(c);
         }
@@ -288,39 +261,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(false);
-
-    uint8_t c_arr_2[16][3] = {{62,  124, 10},
-                              {36,  117, 6},
-                              {33,  108, 7},
-                              {117, 101, 12},
-                              {14,  92,  6},
-                              {45,  86,  3},
-                              {102, 79,  9},
-                              {126, 67,  1},
-                              {106, 63,  12},
-                              {90,  52,  7},
-                              {34,  47,  12},
-                              {98,  31,  4},
-                              {28,  28,  13},
-                              {8,   23,  8},
-                              {118, 15,  7},
-                              {41,  6,   12}};
-    uint8_t c_arr_3[16][3] = {{62,  124, 10},
-                              {36,  117, 6},
-                              {33,  108, 7},
-                              {117, 101, 12},
-                              {14,  92,  6},
-                              {45,  86,  3},
-                              {102, 79,  9},
-                              {126, 67,  1},
-                              {106, 63,  12},
-                              {90,  52,  7},
-                              {34,  47,  12},
-                              {98,  31,  4},
-                              {28,  28,  13},
-                              {8,   23,  8},
-                              {118, 15,  7},
-                              {41,  6,   12}};
+    Init();
     last_round_attack();
     return 0;
 }

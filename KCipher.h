@@ -1,7 +1,3 @@
-//
-// Created by sauron on 3/9/21.
-//
-
 #ifndef K_CIPHER_KCIPHER_H
 #define K_CIPHER_KCIPHER_H
 
@@ -12,8 +8,6 @@
 #include <bitset>
 #include <chrono>
 
-//#define N 128   //State size
-//#define M 8  //Block size used in SBox inversion
 using namespace std;
 const int N = 128;
 const int M = 8;
