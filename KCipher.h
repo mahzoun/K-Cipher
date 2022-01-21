@@ -7,10 +7,14 @@
 #include <random>
 #include <bitset>
 #include <chrono>
+#define ROTL8(x, shift) ((uint8_t) ((x) << (shift)) | ((x) >> (8 - (shift))))
+#define ROTR8(x, shift) ((uint8_t) ((x) >> (shift)) | ((x) << (8 - (shift))))
 
 using namespace std;
 const int N = 128;
 const int M = 8;
+template<size_t size> bitset<size> operator+(bitset<size> &A, bitset<size> &B) noexcept;
+template<size_t size> bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept;
 
 class KCipher {
 public:

@@ -3,8 +3,6 @@
 #include <iostream>
 #include "KCipher.h"
 
-#define ROTL8(x,shift) ((uint8_t) ((x) << (shift)) | ((x) >> (8 - (shift))))
-#define ROTR8(x,shift) ((uint8_t) ((x) >> (shift)) | ((x) << (8 - (shift))))
 using namespace std;
 
 template<size_t size>
