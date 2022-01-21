@@ -4,14 +4,11 @@
 #include <cmath>
 
 /*
- * These variables are defined global for sake of the efficiency of the code.
+ * These variables are global for the sake of efficiency of the code.
  */
 KCipher kcipher;
 bitset<N> key, r[6];
 uint64_t key_table[1 << M][1 << M];
-bitset<N> k3_candidates[1 << 16], r12_candidates[1 << 16];
-uint16_t k3_bytes[2][16], r12_bytes[2][16];
-bool gddt[1 << M][1 << M];
 
 struct characteristic {
     uint32_t input_diff;
@@ -133,6 +130,8 @@ void differential_cryptanalysis_distinguisher(characteristic c) {
 }
 
 void last_round_attack() {
+    bitset<N> k3_candidates[1 << 16], r12_candidates[1 << 16];
+    uint16_t k3_bytes[2][16], r12_bytes[2][16];
     uint8_t c_arr_1[16][3] = {{62,  124, 1},
                               {36,  117, 2},
                               {33,  108, 3},

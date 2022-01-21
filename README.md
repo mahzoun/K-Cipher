@@ -1,6 +1,7 @@
 # Cryptanalysis of K-Cipher
 
 ----------
+###Structure of the project
 This project is a c++ implementation of differential cryptanalysis attack to [K-Cipher](https://eprint.iacr.org/2020/030.pdf).
 The project contains the following files;    
 * `KCipher.h`: Includes headers for the functions of K-Cipher.
@@ -18,6 +19,4 @@ make
 ```
 Please note that the code is only tested on Ubuntu machine (`5.13.0-27-generic x86_64`). To run on other platforms please make sure that the 
 randomness generation has enough entropy.    
-
-
 
