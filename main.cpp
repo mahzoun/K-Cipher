@@ -7,7 +7,8 @@
  * These variables are global for the sake of efficiency of the code.
  */
 KCipher kcipher;
-bitset<N> key, r[6];
+bitset<N> r[6];
+bitset<K> key;
 uint64_t key_table[1 << M][1 << M];
 
 struct characteristic {
@@ -23,9 +24,10 @@ struct characteristic {
 */
 static std::random_device rd;
 static std::mt19937 rng{rd()};
-void Random(bitset<N> &input) {
+template<size_t size>
+void Random(bitset<size> &input) {
     static std::uniform_int_distribution<int> uid(0, 1); // random dice
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < size; i++)
         input[i] = uid(rng);
 }
 
@@ -34,14 +36,16 @@ void Init() {
      * This function generates new key and randomizers for each run. To have fixed key and randomizers, set them here.
      */
     Random(key);
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++) {
         Random(r[i]);
+    }
+
 }
 
 inline uint8_t partial_dec(bitset<N> ct, uint8_t r1, uint8_t k, int position, int rounds) {
     bitset<M> temp;
     for (int i = 0; i < M; i++) {
-        temp[i] = ct[128 - 8 * position + i];
+        temp[i] = ct[N - 8 * position + i];
     }
     uint8_t block_val = temp.to_ulong();
     block_val ^= k;
@@ -130,8 +134,6 @@ void differential_cryptanalysis_distinguisher(characteristic c) {
 }
 
 void last_round_attack() {
-    bitset<N> k3_candidates[1 << 16], r12_candidates[1 << 16];
-    uint16_t k3_bytes[2][16], r12_bytes[2][16];
     uint8_t c_arr_1[16][3] = {{62,  124, 1},
                               {36,  117, 2},
                               {33,  108, 3},
@@ -173,38 +175,14 @@ void last_round_attack() {
             }
         }
         cout << c.input_diff << "\t" << c.output_diff << "\t" << c.probability << "\t" << c.sbox << endl;
-        int tmp_index = 0;
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 256; j++) {
                 if (key_table[i][j] == key_table[maxk][maxr1]) {
                     cout << hex << i << "\t" << j << "\t" << key_table[i][j] << endl;
-                    int index = t < 8 ? t + 8 : t - 8;
-                    k3_bytes[tmp_index][index] = i;
-                    r12_bytes[tmp_index][index] = j;
-                    tmp_index++;
-                    if (tmp_index > 2) {
-                        cout << "More than two candidates found, there must be a problem.\n";
-                        return;
-                    }
                 }
             }
         }
         cout << "\n________________________\n";
-    }
-    /*
-     * Create all 2^16 possible combinations of the found candidates. Recovers K3 (veil) and the last round randomizer.
-     */
-    for (uint32_t I = 0; I < (1 << 16); I++) {
-        uint32_t temp = I;
-        for (int idx = 0; idx < 16; idx++) {
-            bitset<8> cur_key = k3_bytes[temp % 2][15 - idx];
-            bitset<8> cur_rand = r12_bytes[temp % 2][15 - idx];
-            temp /= 2;
-            for (int i = 0; i < 8; i++) {
-                k3_candidates[I][idx * 8 + i] = cur_key[i];
-                r12_candidates[I][idx * 8 + i] = cur_rand[i];
-            }
-        }
     }
 }
 
