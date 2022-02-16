@@ -131,9 +131,10 @@ bitset<N> KCipher::DecCPA(bitset<N> input, bitset<K> key, bitset<N> rand[]) {
 
 void KCipher::KeyExpansion(bitset<K> key, bitset<N> K[]) {
     if (N < 33) {
-        for (uint8_t i = 0; i < 3; i++) {
-            for (uint16_t j = i * N; j < i * (N + 1); j++)
+        for (int i = 0; i < 3; i++) {
+            for (int j = i * N; j < (i + 1) * N; j++) {
                 K[i][j - i * N] = key[j];
+            }
         }
     } else {
         bitset<N> C, U, rand[4];

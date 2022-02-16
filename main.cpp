@@ -1,6 +1,7 @@
 #include "KCipher.h"
 #include <iostream>
 #include <random>
+#include <chrono>
 #include <cmath>
 
 /*
@@ -134,7 +135,12 @@ void differential_cryptanalysis_distinguisher(characteristic c) {
 }
 
 void last_round_attack() {
-    uint8_t c_arr_1[16][3] = {{62,  124, 1},
+    uint8_t c_arr_1[5][3] = {{22,  16, 1},
+                             {5,  16, 1},
+                             {15,  13, 2},
+                             {19, 2, 3},
+                             {18,  5,  3}};
+    uint8_t c_arr_2[16][3] = {{62,  124, 1},
                               {36,  117, 2},
                               {33,  108, 3},
                               {117, 101, 4},
@@ -150,7 +156,7 @@ void last_round_attack() {
                               {8,   23,  14},
                               {118, 15,  15},
                               {41,  6,   16}};
-    for (int t = 0; t < 16; t++) {
+    for (int t = 0; t < 5; t++) {
         for (int i = 0; i < 256; i++)
             for (int j = 0; j < 256; j++)
                 key_table[i][j] = 0;
@@ -161,7 +167,7 @@ void last_round_attack() {
         /*
          * uncomment the following function call to run the distinguisher attack.
          */
-        // differential_cryptanalysis_distinguisher(c);
+        differential_cryptanalysis_distinguisher(c);
         for (int i = 0; i < (1 << 16); i++) {
             differential_cryptanalysis_key_recovery(c);
         }
@@ -187,10 +193,30 @@ void last_round_attack() {
 }
 
 using namespace std;
+using chrono::high_resolution_clock;
+using chrono::duration_cast;
+using chrono::duration;
+using chrono::milliseconds;
 
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(false);
-    Init();
+    string key_string = "001011001011111011010001111001000101100101111010100101011100111000100101010111000001011100000011";
+    bitset<K> temp(key_string);     
+    key = temp;
+    bitset<N> rand2[6];
+
+    rand2[0] = 0x4d82b5;
+    rand2[1] = 0xdb8760;
+    rand2[2] = 0x02011e;
+    rand2[3] = 0x71fc2a;
+    rand2[4] = 0x000072;
+    rand2[5] = 0xa92a9a;
+    for (int i = 0; i < 6; i++)
+        r[i] = rand2[i];
+    auto t1 = high_resolution_clock::now();
     last_round_attack();
+    auto t2 = high_resolution_clock::now();
+    duration<double, std::milli> ms_double = t2 - t1;
+    cout << "The attack finished in(ms):" << ms_double.count() << endl;
     return 0;
 }
