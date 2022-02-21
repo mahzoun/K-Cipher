@@ -181,7 +181,7 @@ void attack_round_3() {
          * uncomment the following function call to run the distinguisher attack.
          */
         //differential_cryptanalysis_distinguisher(c, 3);
-        for (int i = 0; i < (1 << 0); i++) {
+        for (int i = 0; i < (1 << 16); i++) {
             differential_cryptanalysis_key_recovery(c, i, 3);
         }
         int maxk = 0, maxr1 = 0;
@@ -208,7 +208,7 @@ void attack_round_3() {
 void attack_round_2() {
     uint8_t c_arr_1[5][3] = {{22,  11, 2},
                              {15,  18, 1},
-                             {19, 0, 3},
+                             {19, 0, 3}};
     for (int t = 0; t < 5; t++) {
         for (int i = 0; i < 256; i++)
             for (int j = 0; j < 256; j++)
@@ -253,16 +253,16 @@ using chrono::milliseconds;
 
 int main(int argc, char **argv) {
     Init();
-    int counter = 0;
     ios_base::sync_with_stdio(false);
     auto t1 = high_resolution_clock::now();
-    attack_round_2();
+    attack_round_3();
     auto t2 = high_resolution_clock::now();
-    duration<double, std::milli> ms_double_round2 = t2 - t1;
+    duration<double, std::milli> ms_double = t2 - t1;
+    cout << "The attack round 3 finished in(ms):" << ms_double.count() << endl;
     t1 = high_resolution_clock::now();
-        attack_round_2();
-    auto t2 = high_resolution_clock::now();
-    duration<double, std::milli> ms_double_round2 = t2 - t1;
-    cout << "The attack finished in(ms):" << ms_double.count() << endl;
+    attack_round_2();
+    t2 = high_resolution_clock::now();
+    ms_double = t2 - t1;
+    cout << "The attack round 2 finished in(ms):" << ms_double.count() << endl;
     return 0;
 }
