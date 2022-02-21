@@ -27,6 +27,10 @@ bitset<size> operator-(bitset<size> &A, bitset<size> &B) noexcept {
     return diff;
 }
 
+void KCipher::init(bitset<K> key) {
+    KeyExpansion(key, round_keys);
+}
+
 bitset<N> KCipher::BitReordering(bitset<N> input, int index) {
     bitset<N> output;
     for (int i = 0; i < N; i++) {
@@ -105,26 +109,22 @@ bitset<N> KCipher::Inv_SBox(bitset<N> input, bitset<N> rand[], int index) {
 
 bitset<N> KCipher::EncCPA(bitset<N> input, bitset<K> key, bitset<N> rand[]) {
     // modular addition with constant c_0 is ignored because it does not contribute to security.
-    bitset<N> K[3];
-    KeyExpansion(key, K);
     for (int i = 0; i < 3; i++) {
-        input = input + K[i];
+        input = input + round_keys[i];
         input = BitReordering(input, i);
         input = SBox(input, rand, i);
     }
-    bitset<N> veil = BitReordering(K[2], 3);
+    bitset<N> veil = BitReordering(round_keys[2], 3);
     return input ^ veil;
 }
 
 bitset<N> KCipher::DecCPA(bitset<N> input, bitset<K> key, bitset<N> rand[]) {
-    bitset<N> K[3];
-    KeyExpansion(key, K);
-    bitset<N> veil = BitReordering(K[2], 3);
+    bitset<N> veil = BitReordering(round_keys[2], 3);
     input = input ^ veil;
     for (int i = 0; i < 3; i++) {
         input = Inv_SBox(input, rand, 2 - i);
         input = BitReordering(input, 12 - i);
-        input = input - K[2 - i];
+        input = input - round_keys[2 - i];
     }
     return input;
 }
@@ -160,6 +160,7 @@ void KCipher::KeyExpansion(bitset<K> key, bitset<N> K[]) {
         U = SBox(U, rand, -1);
         K[2] = BitReordering(U, 7);
     }
+
 }
 
 void KCipher::KeyRecover(bitset<N> key, bitset<N> K[]) {
