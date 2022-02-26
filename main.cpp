@@ -315,18 +315,24 @@ using chrono::milliseconds;
 int main(int argc, char **argv) {
     Init();
     ios_base::sync_with_stdio(false);
+
     auto t1 = high_resolution_clock::now();
-    attack_round_1();
+    attack_round_3();
     auto t2 = high_resolution_clock::now();
-//    auto t1 = high_resolution_clock::now();
-//    attack_round_3();
-//    auto t2 = high_resolution_clock::now();
-//    duration<double, std::milli> ms_double = t2 - t1;
-//    cout << "The attack round 3 finished in(ms):" << ms_double.count() << endl;
-//    t1 = high_resolution_clock::now();
-//    attack_round_2();
-//    t2 = high_resolution_clock::now();
-//    ms_double = t2 - t1;
-//    cout << "The attack round 2 finished in(ms):" << ms_double.count() << endl;
+    duration<double, std::milli> ms_double = t2 - t1;
+    cout << "The attack round 3 finished in(ms):" << ms_double.count() << endl;
+
+    t1 = high_resolution_clock::now();
+    attack_round_2();
+    t2 = high_resolution_clock::now();
+    ms_double = t2 - t1;
+    cout << "The attack round 2 finished in(ms):" << ms_double.count() << endl;
+
+    t1 = high_resolution_clock::now();
+    attack_round_1();
+    t2 = high_resolution_clock::now();
+    ms_double = t2 - t1;
+    cout << "The attack round 1 finished in(ms):" << ms_double.count() << endl;
+
     return 0;
 }
